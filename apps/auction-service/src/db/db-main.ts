@@ -10,9 +10,13 @@ const knex = Knex({
   },
 });
 
-knex.raw('select 1+1 as result').catch((err) => {
-  console.log(err);
-  process.exit(1);
-});
+knex
+  .raw('select 1+1 as result')
+  .then(() => console.log('Database connected'))
+  .catch((err) => {
+    console.log(err);
+    process.exit(1);
+  });
 
 export const bookshelf = require('bookshelf')(knex);
+export { knex };

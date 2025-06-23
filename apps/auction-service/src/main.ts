@@ -1,91 +1,137 @@
 const restify = require('restify');
 const Joi = require('joi');
-import * as _ from 'lodash';
-import { bookshelf } from './db/db-main';
+const _ = require('lodash');
+const { v4: uuidv4 } = require('uuid');
+const { bookshelf, knex } = require('./db/db-main');
 
 const server = restify.createServer({
   name: 'auction-service',
 });
 
-const Auction = bookshelf.model('Auction', {
-  tableName: 'auctions',
-});
-
-const auctionSchema = Joi.object({
-  title: Joi.string().min(3).max(255).required(),
-  description: Joi.string().max(1000).optional(),
-  currentBid: Joi.number().positive().default(0),
-  endTime: Joi.date().iso().greater('now').required(),
-  status: Joi.string().valid('active', 'closed').default('active'),
-});
-
-server.use(restify.plugins.bodyParser());
-
-server.use(restify.plugins.queryParser());
-
-server.get('/api/auctions', async (req, res) => {
+async function initializeDatabase() {
   try {
-    const auctions = await Auction.fetchAll();
-    res.send(200, auctions.toJSON());
-  } catch (err) {
-    res.send(500, { error: 'Failed to fetch auctions' });
+    const hasTable = await knex.schema.hasTable('auctions');
+    if (!hasTable) {
+      console.log('Creating auctions table...');
+      await knex.schema.createTable('auctions', (table) => {
+        table.string('id', 36).primary();
+        table.string('title', 255).notNullable();
+        table.text('description').nullable();
+        table.decimal('current_bid', 10, 2).defaultTo(0);
+        table.dateTime('end_time').notNullable();
+        table.enum('status', ['active', 'closed']).defaultTo('active');
+      });
+      console.log('Auctions table created successfully');
+    } else {
+      console.log('Auctions table already exists');
+    }
+  } catch (error) {
+    console.error('Failed to initialize auctions table:', error.message);
+    throw error;
   }
-});
+}
 
-server.post('/api/auctions', async (req, res) => {
-  const { error, value } = auctionSchema.validate(req.body);
-  if (error) {
-    res.send(400, { error: error.details[0].message });
-  }
-
-  try {
-    const auction = await Auction.forge({
-      id: _.uniqueId('auction_'),
-      title: value.title,
-      description: value.description,
-      current_bid: value.currentBid,
-      end_time: value.endTime,
-      status: value.status,
-    }).save();
-    res.send(201, auction);
-  } catch (err) {
-    res.send(500, { error: 'Failed to create auction' });
-  }
-});
-
-/*
-
-server.get('/api/auctions/:id', async (req, res, next) => {
-  try {
-    const auction = await Auction.where({ id: req.params.id }).fetch({
-      require: true,
+initializeDatabase()
+  .then(() => {
+    const Auction = bookshelf.model('Auction', {
+      tableName: 'auctions',
     });
-    res.send(200, auction.toJSON());
-  } catch (err) {
-    res.send(404, { error: 'Auction not found' });
-  }
-  return next();
-});
 
-server.put('/api/auctions/:id', async (req, res, next) => {
-  const { error, value } = auctionSchema.validate(req.body);
-  if (error) {
-    res.send(400, { error: error.details[0].message });
-    return next();
-  }
-
-  try {
-    const auction = await Auction.where({ id: req.params.id }).fetch({
-      require: true,
+    const auctionSchema = Joi.object({
+      title: Joi.string().min(3).max(255).required(),
+      description: Joi.string().max(1000).optional(),
+      currentBid: Joi.number().positive().default(0),
+      endTime: Joi.date().iso().greater('now').required(),
+      status: Joi.string().valid('active', 'closed').default('active'),
     });
-    await auction.save(
-      _.pick(value, ['title', 'description', 'currentBid', 'endTime', 'status'])
+
+    server.use(restify.plugins.bodyParser());
+    server.use(restify.plugins.queryParser());
+    server.use(function crossOrigin(req, res, next) {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+      return next();
+    });
+
+    server.get('/api/auctions', async (req, res) => {
+      try {
+        const auctions = await Auction.fetchAll();
+        res.send(200, auctions.toJSON());
+      } catch (err) {
+        console.error('GET /api/auctions error:', err.message, err.stack);
+        res.send(500, { error: 'Failed to fetch auctions' });
+      }
+    });
+
+    server.post('/api/auctions', async (req, res) => {
+      const { error, value } = auctionSchema.validate(req.body);
+      if (error) {
+        res.send(400, { error: error.details[0].message });
+        return;
+      }
+
+      try {
+        console.log('Creating auction with data:', value);
+        const auction = await Auction.forge({
+          id: uuidv4(),
+          title: value.title,
+          description: value.description,
+          current_bid: value.currentBid,
+          end_time: new Date(value.endTime),
+          status: value.status,
+        }).save(null, { method: 'insert' });
+        console.log('Auction created:', auction.toJSON());
+        res.send(201, auction.toJSON());
+      } catch (err) {
+        console.error('POST /api/auctions error:', err.message, err.stack);
+        res.send(500, { error: `Failed to create auction - ${err.message}` });
+      }
+    });
+
+    server.get('/api/auctions/:id', async (req, res) => {
+      try {
+        const auction = await Auction.where({ id: req.params.id }).fetch({
+          require: true,
+        });
+        res.send(200, auction.toJSON());
+      } catch (err) {
+        console.error('GET /api/auctions/:id error:', err.message, err.stack);
+        res.send(404, { error: 'Auction not found' });
+      }
+    });
+
+    server.put('/api/auctions/:id', async (req, res) => {
+      const { error, value } = auctionSchema.validate(req.body);
+      if (error) {
+        res.send(400, { error: error.details[0].message });
+        return;
+      }
+
+      try {
+        const auction = await Auction.where({ id: req.params.id }).fetch({
+          require: true,
+        });
+        await auction.save(
+          _.pick(value, [
+            'title',
+            'description',
+            'currentBid',
+            'endTime',
+            'status',
+          ])
+        );
+        res.send(200, auction.toJSON());
+      } catch (err) {
+        console.error('PUT /api/auctions/:id error:', err.message, err.stack);
+        res.send(404, { error: 'Auction not found' });
+      }
+    });
+
+    server.listen(3000, () =>
+      console.log('Auction service running on port 3000')
     );
-    res.send(200, auction.toJSON());
-  } catch (err) {
-    res.send(404, { error: 'Auction not found' });
-  }
-  return next();
-});
- */
-server.listen(3000, () => console.log('Auction service running on port 3000'));
+  })
+  .catch((error) => {
+    console.error('Failed to start auction service:', error.message);
+    process.exit(1);
+  });
