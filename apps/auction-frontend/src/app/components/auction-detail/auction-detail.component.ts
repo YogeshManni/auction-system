@@ -14,7 +14,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
-
+import { SnakeToCamelPipe } from '../../pipes/snake-to-camel-pipe';
+import { MatDatepickerModule } from '@angular/material/datepicker';
 @Component({
   selector: 'app-auction-detail',
   imports: [
@@ -27,6 +28,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
     MatSelectModule,
     MatButtonModule,
   ],
+  providers: [SnakeToCamelPipe],
   templateUrl: './auction-detail.component.html',
   styleUrls: ['./auction-detail.component.css'],
 })
@@ -38,6 +40,8 @@ export class AuctionDetailComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private auctionService = inject(AuctionService);
   private fb = inject(FormBuilder);
+  private SnakeToCamelPipe = inject(SnakeToCamelPipe);
+
   constructor() {
     this.form = this.fb.group({
       title: [
@@ -60,7 +64,7 @@ export class AuctionDetailComponent implements OnInit {
     if (id) {
       this.auctionService.getAuction(id).subscribe({
         next: (data) => {
-          this.auction = data;
+          this.auction = this.SnakeToCamelPipe.transform(data) as Auction;
           this.form.patchValue({
             ...data,
             endTime: new Date(data.endTime).toISOString().slice(0, 16),

@@ -12,6 +12,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatIconModule } from '@angular/material/icon';
+import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 
 @Component({
   selector: 'app-auction-create',
@@ -23,6 +26,9 @@ import { MatSelectModule } from '@angular/material/select';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatIconModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
   ],
   templateUrl: './auction-create.component.html',
   styleUrls: ['./auction-create.component.css'],
@@ -44,7 +50,7 @@ export class AuctionCreateComponent {
         ],
       ],
       description: ['', Validators.maxLength(1000)],
-      currentBid: [0, [Validators.min(0)]],
+      currentBid: [[Validators.min(0)]],
       endTime: ['', Validators.required],
       status: ['active', Validators.required],
     });

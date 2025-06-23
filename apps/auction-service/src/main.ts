@@ -3,6 +3,7 @@ const Joi = require('joi');
 const _ = require('lodash');
 const { v4: uuidv4 } = require('uuid');
 const { bookshelf, knex } = require('./db/db-main');
+const corsMiddleware = require('restify-cors-middleware2');
 
 const server = restify.createServer({
   name: 'auction-service',
@@ -47,12 +48,30 @@ initializeDatabase()
 
     server.use(restify.plugins.bodyParser());
     server.use(restify.plugins.queryParser());
-    server.use(function crossOrigin(req, res, next) {
-      res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Headers', 'X-Requested-With');
-      return next();
+
+    const cors = corsMiddleware({
+      preflightMaxAge: 5, //Optional
+      origins: ['*'],
+      allowHeaders: ['Content-Type, X-Requested-With, Authorization'],
     });
 
+    server.pre(cors.preflight);
+    server.use(cors.actual);
+    /*  server.use(function crossOrigin(req, res, next) {
+      res.header('Access-Control-Allow-Origin', '*');
+      res.header(
+        'Access-Control-Allow-Methods',
+        'OPTIONS, GET, PUT, PATCH, POST, DELETE, X-App-Version,Accept,Accept-Version,Content-Type,Api-Version,Origin,X-Requested-With,Authorization'
+      );
+      res.header(
+        'Access-Control-Allow-Headers',
+        'Content-Type, X-Requested-With, Authorization'
+      );
+      res.header('Access-Control-Allow-Credentials', 'true');
+
+      return next();
+    });
+ */
     server.get('/api/auctions', async (req, res) => {
       try {
         const auctions = await Auction.fetchAll();
