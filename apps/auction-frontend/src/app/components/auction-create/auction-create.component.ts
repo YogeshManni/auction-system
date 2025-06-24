@@ -35,6 +35,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 })
 export class AuctionCreateComponent {
   form: FormGroup;
+  selectedImage: File | null = null;
+  imagePreview: string | null = null;
 
   private fb = inject(FormBuilder);
   private dialogRef = inject(MatDialogRef<AuctionCreateComponent>);
@@ -53,16 +55,41 @@ export class AuctionCreateComponent {
       currentBid: [[Validators.min(0)]],
       endTime: ['', Validators.required],
       status: ['active', Validators.required],
+      imageUrl: [null],
     });
   }
 
-  submit(): void {
-    if (this.form.valid) {
-      const auction = {
-        ...this.form.value,
-        endTime: new Date(this.form.value.endTime).toISOString(),
+  onFileChange(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files.length > 0) {
+      this.selectedImage = input.files[0];
+      this.form.patchValue({ imageUrl: this.selectedImage });
+      // Generate preview
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.imagePreview = reader.result as string;
       };
-      this.auctionService.createAuction(auction).subscribe({
+      reader.readAsDataURL(this.selectedImage);
+    }
+  }
+
+  submit(): void {
+    if (this.form.valid && this.selectedImage) {
+      const formData = new FormData();
+      formData.append('title', this.form.get('title')?.value);
+      formData.append('description', this.form.get('description')?.value);
+      formData.append(
+        'current_bid',
+        this.form.get('currentBid')?.value.toString()
+      );
+      formData.append(
+        'end_time',
+        this.form.get('endTime')?.value.toISOString()
+      );
+      formData.append('status', this.form.get('status')?.value);
+      formData.append('imageUrl', this.selectedImage);
+
+      this.auctionService.createAuction(formData).subscribe({
         next: () => this.dialogRef.close(true),
         error: (err) => console.error('Failed to create auction:', err),
       });

@@ -48,6 +48,22 @@
       >
     </mat-form-field>
 
+    <div>
+      <label class="block text-sm font-medium">Upload Image</label>
+      <input
+        type="file"
+        accept="image/*"
+        (change)="onFileChange($event)"
+        class="mt-1 block w-full"
+      />
+      <img
+        *ngIf="imagePreview"
+        [src]="imagePreview"
+        alt="Image Preview"
+        class="mt-2 max-w-xs"
+      />
+    </div>
+
     <mat-form-field class="w-full">
       <mat-label>Status</mat-label>
       <mat-select formControlName="status">

@@ -16,6 +16,7 @@ import { MatIconModule } from '@angular/material/icon';
     RouterOutlet,
     MatButtonModule,
     MatTableModule,
+    RouterModule,
   ],
   selector: 'app-root',
   templateUrl: './app.html',

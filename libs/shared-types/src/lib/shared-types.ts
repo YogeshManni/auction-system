@@ -9,6 +9,7 @@ export interface Auction {
   currentBid: number;
   endTime: Date;
   status: 'active' | 'closed';
+  imageUrl?: string;
 }
 
 export interface Bid {

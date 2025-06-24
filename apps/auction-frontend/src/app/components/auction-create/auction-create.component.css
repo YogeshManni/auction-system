@@ -14,3 +14,13 @@ input.example-right-align::-webkit-inner-spin-button {
 input.example-right-align {
   -moz-appearance: textfield;
 }
+
+form {
+  @apply p-4;
+}
+mat-form-field {
+  @apply w-full;
+}
+textarea {
+  @apply min-h-[100px];
+}

@@ -20,11 +20,11 @@ export class AuctionService {
     return this.http.get<Auction>(`${this.apiUrl}/${id}`);
   }
 
-  createAuction(auction: Partial<Auction>): Observable<Auction> {
-    return this.http.post<Auction>(this.apiUrl, auction);
+  createAuction(formData: FormData): Observable<any> {
+    return this.http.post<any>(this.apiUrl, formData);
   }
 
-  updateAuction(id: string, auction: Partial<Auction>): Observable<Auction> {
-    return this.http.put<Auction>(`${this.apiUrl}/${id}`, auction);
+  updateAuction(id: string, auction: any): Observable<Auction> {
+    return this.http.put<any>(`${this.apiUrl}/${id}`, auction);
   }
 }

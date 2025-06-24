@@ -16,6 +16,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { SnakeToCamelPipe } from '../../pipes/snake-to-camel-pipe';
 import { MatDatepickerModule } from '@angular/material/datepicker';
+import { MatNativeDateModule } from '@angular/material/core';
 @Component({
   selector: 'app-auction-detail',
   imports: [
@@ -27,6 +28,8 @@ import { MatDatepickerModule } from '@angular/material/datepicker';
     MatInputModule,
     MatSelectModule,
     MatButtonModule,
+    MatDatepickerModule,
+    MatNativeDateModule,
   ],
   providers: [SnakeToCamelPipe],
   templateUrl: './auction-detail.component.html',
@@ -65,10 +68,12 @@ export class AuctionDetailComponent implements OnInit {
       this.auctionService.getAuction(id).subscribe({
         next: (data) => {
           this.auction = this.SnakeToCamelPipe.transform(data) as Auction;
-          this.form.patchValue({
+
+          console.log(this.auction);
+          /* this.form.patchValue({
             ...data,
             endTime: new Date(data.endTime).toISOString().slice(0, 16),
-          });
+          }); */
         },
         error: (err) => console.error('Failed to load auction:', err),
       });
@@ -81,13 +86,19 @@ export class AuctionDetailComponent implements OnInit {
 
   updateAuction(): void {
     if (this.form.valid && this.auction) {
+      //console.log('Updating auction with form value:', this.form.value.endTime);
       const auction = {
-        ...this.form.value,
-        endTime: new Date(this.form.value.endTime).toISOString(),
+        //id: this.auction.id,
+        title: this.form.value.title,
+        description: this.form.value.description,
+        current_bid: this.form.value.currentBid,
+        status: this.form.value.status,
+        end_time: this.form.value.endTime.toISOString(), // Ensure endTime is in ISO format
       };
+      console.log('Updating auction:', auction);
       this.auctionService.updateAuction(this.auction.id, auction).subscribe({
         next: (data) => {
-          this.auction = data;
+          this.auction = this.SnakeToCamelPipe.transform(data) as Auction;
           this.isEditing = false;
         },
         error: (err) => console.error('Failed to update auction:', err),
